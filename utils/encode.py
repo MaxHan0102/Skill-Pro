@@ -6,7 +6,7 @@ import torch
 _ENCODER_MODEL = None
 _EMB_CACHE = {}
 
-def init_text_encoder(model_name="/mnt/QTJC/qirui/LM/all-MiniLM-L6-v2", device=None):
+def init_text_encoder(model_name="sentence-transformers/all-MiniLM-L6-v2", device=None):
     global _ENCODER_MODEL
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"

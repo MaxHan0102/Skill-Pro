@@ -21,6 +21,7 @@ def parse_arguments():
     # Basic setup --env_names "FrozenLake-v0"
     parser.add_argument("--MDP_type", type=str, default="SMDP", choices=["SMDP", "MDP"], help="Choose between full Skill-MDP (SMDP) or vanilla MDP")
     parser.add_argument("--ablation_type", type=str, default="none", choices=["wo_sg", "wo_ppo", "wo_score", "none"], help="Choose between full Skill-MDP (SMDP) or vanilla MDP")
+    parser.add_argument("--backend", type=str, default="auto", choices=["auto", "mlx", "vllm", "openrouter"], help="LLM backend; Mac 上用 mlx-community 模型选 mlx")
     parser.add_argument("--env_names", type=str, default="Mastermind-v0", help="Comma separated env names")   # "Mastermind-v0"
     parser.add_argument("--agent_name", type=str, default="/mnt/QTJC/qirui/LM/google/gemma-2-9b-it")  # meta-llama/llama-3.3-70b-instruct,  /mnt/QTJC/qirui/LM/google/gemma-3-4b-it   "/mnt/QTJC/qirui/LM/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
     parser.add_argument("--ge_model_name", type=str, default="meta-llama/llama-3.3-70b-instruct")

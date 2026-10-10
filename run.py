@@ -19,6 +19,7 @@ from Skills.skill_evolution import SkillEvolution
 import textarena as ta
 from utils.utils import set_seed, is_local_model, build_log_file_path
 from utils.local_llm import LocalLLM
+from utils.mlx_llm import MLXLLM
 from data_structures import Experience
 import yaml
 
@@ -65,22 +66,13 @@ class SkillMDP:
             raw_env = get_environment(env_type)(config, train_eval=type)
             self.alfworld_env = raw_env.init_env(batch_size=1)
         
-        if is_local_model(args.agent_name):
-            print(f"[LLM] Loading local policy model: {args.agent_name}")
-            self.llm_policy = LocalLLM(
-                model_path=args.agent_name,
-                use_vllm=True,
-                vllm_gpu_util=0.75
-            )
-        else:
-            print(f"[LLM] Using OpenRouter remote model: {args.agent_name}")
-            self.llm_policy = ta.agents.OpenRouterAgent(model_name=args.agent_name)
+        self.llm_policy = self._make_llm(args.agent_name)
         
         if args.agent_name == args.ge_model_name:
+            # 复用同一份模型，省一半内存（Mac 上推荐 agent == ge_model）
             self.skill_evolver = SkillEvolution(llm_agent=self.llm_policy)
         else:
-            evolver_llm = LocalLLM(model_path=args.ge_model_name) if is_local_model(args.ge_model_name) else ta.agents.OpenRouterAgent(model_name=args.ge_model_name)
-            self.skill_evolver = SkillEvolution(llm_agent=evolver_llm)
+            self.skill_evolver = SkillEvolution(llm_agent=self._make_llm(args.ge_model_name))
         
         exp_name, self.log_file_path = build_log_file_path(args)
         swanlab.init(
@@ -89,6 +81,21 @@ class SkillMDP:
             config=vars(args)  # 将所有参数保存到配置中
         )
     
+    def _make_llm(self, name: str):
+        """按 --backend 分发 LLM 后端。Mac 上用 mlx-community 模型时选 --backend mlx。"""
+        backend = getattr(self.args, "backend", "auto")
+        if backend == "mlx":
+            print(f"[LLM] MLX backend: {name}")
+            return MLXLLM(model_path=name)
+        if backend == "openrouter":
+            print(f"[LLM] OpenRouter remote model: {name}")
+            return ta.agents.OpenRouterAgent(model_name=name)
+        if backend == "vllm" or is_local_model(name):
+            print(f"[LLM] Loading local policy model (vLLM): {name}")
+            return LocalLLM(model_path=name, use_vllm=True, vllm_gpu_util=0.75)
+        print(f"[LLM] OpenRouter remote model: {name}")
+        return ta.agents.OpenRouterAgent(model_name=name)
+
     def run_skill_mdp(self):
         set_seed(self.args.seed)
         training_logs = []
